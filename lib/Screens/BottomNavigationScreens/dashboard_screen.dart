@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fyp/Screens/DashboardScreen/courier_service.dart';
@@ -13,6 +14,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 
 import '../../Services/constants.dart';
+import '../../driver/driverLogin.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen(
@@ -30,6 +32,122 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   // var scaffoldKey = GlobalKey<ScaffoldState>();
+  showAlertDialog(BuildContext context) {
+    // set up the buttons
+    Widget cancelButton = Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(16.0)),
+          width: MediaQuery.of(context).size.width * 0.3,
+          height: MediaQuery.of(context).size.height * 0.07,
+          child: MaterialButton(
+            onPressed: () {
+              Navigator.push(
+                      context, MaterialPageRoute(builder: (_) => DriverLogin()))
+                  .whenComplete(() {
+                FirebaseAuth.instance.signOut();
+                print('FirebaseAuth.instance.currentUser!.uid');
+                print(FirebaseAuth.instance.currentUser!.uid ??
+                    'nullllllllllllll');
+              });
+            },
+            child: Text(
+              "Driver",
+              style: GoogleFonts.lato(
+                textStyle: const TextStyle(
+                    color: Color(0xff161616),
+                    letterSpacing: .5,
+                    fontWeight: FontWeight.bold),
+                // color: const Color.fromARGB(
+                //     255, 65, 61, 251)
+              ),
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 10.0,
+        ),
+        Container(
+          decoration: BoxDecoration(
+              color: lightBlueColor, borderRadius: BorderRadius.circular(16.0)),
+          width: MediaQuery.of(context).size.width * 0.3,
+          height: MediaQuery.of(context).size.height * 0.07,
+          child: MaterialButton(
+            onPressed: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const CourierService()));
+            },
+            child: Text(
+              "Costumer",
+              style: GoogleFonts.lato(
+                textStyle: const TextStyle(
+                    color: Color(0xffffffff),
+                    letterSpacing: .5,
+                    fontWeight: FontWeight.bold),
+                // color: const Color.fromARGB(
+                //     255, 65, 61, 251)
+              ),
+            ),
+          ),
+        )
+      ],
+    );
+    // Widget continueButton = Center(
+    //   child: Container(
+    //     decoration: BoxDecoration(
+    //         color: lightBlueColor, borderRadius: BorderRadius.circular(16.0)),
+    //     width: MediaQuery.of(context).size.width * 0.3,
+    //     height: MediaQuery.of(context).size.height * 0.07,
+    //     child: MaterialButton(
+    //       onPressed: () {
+    //         Navigator.push(
+    //             context,
+    //             MaterialPageRoute(
+    //                 builder: (context) => const CourierService()));
+    //       },
+    //       child: Text(
+    //         "Costumer",
+    //         style: GoogleFonts.lato(
+    //           textStyle: const TextStyle(
+    //               color: Color(0xff161616),
+    //               letterSpacing: .5,
+    //               fontWeight: FontWeight.bold),
+    //           // color: const Color.fromARGB(
+    //           //     255, 65, 61, 251)
+    //         ),
+    //       ),
+    //     ),
+    //   ),
+    // );
+
+    // set up the AlertDialog
+    AlertDialog alert = AlertDialog(
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(10.0))),
+      title: Center(child: Image.asset('assets/questionMark.png')),
+      content: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 15.0),
+        child: Text("Are you driver or Customer?"),
+      ),
+      actions: [
+        Center(child: cancelButton),
+        // continueButton,
+      ],
+    );
+
+    // show the dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

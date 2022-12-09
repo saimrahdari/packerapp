@@ -202,10 +202,12 @@ class _SettingScreenState extends State<SettingScreen> {
                       const Divider(color: Colors.grey),
                       InkWell(
                         onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const PaymentScreen()));
+                          // Navigator.push(
+                          // context,
+                          // MaterialPageRoute(
+                          // builder: (context) => PaymentHistory(
+                          //       amount: "100",
+                          //     )));
                         },
                         child: Padding(
                           padding: const EdgeInsets.all(8.0),

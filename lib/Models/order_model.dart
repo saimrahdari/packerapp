@@ -9,6 +9,7 @@ class OrderModel {
   final String departureCity;
   final String arrivalCity;
   final String departureCountry;
+  final String deliveryProof;
   final String arrivalCountry;
   final String bidderEmail;
   final String bidderUserId;
@@ -28,6 +29,7 @@ class OrderModel {
       required this.userName,
       required this.amount,
       required this.departureCity,
+      this.deliveryProof = "",
       required this.arrivalCity,
       required this.departureCountry,
       required this.arrivalCountry,

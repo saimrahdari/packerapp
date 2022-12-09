@@ -1,11 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:fyp/Screens/BottomNavigationScreens/payment_screen.dart';
 import 'package:fyp/Screens/Orders/add_order.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../Models/message_model.dart';
 import '../../Services/constants.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class Chat extends StatefulWidget {
   final String otherUserId;
@@ -27,6 +33,7 @@ class _ChatState extends State<Chat> {
   final User? user = FirebaseAuth.instance.currentUser!;
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  Map<String, dynamic>? paymentIntent;
 
   String otherUserName = '';
   bool iAmBidder = false;
@@ -81,14 +88,6 @@ class _ChatState extends State<Chat> {
                         return const Text('');
                       }
                     }),
-                // Text(
-                //   'En ligne',
-                //   style: GoogleFonts.roboto(
-                //     color: const Color(0xffA7AEC1),
-                //     fontSize: 14.sp,
-                //     fontWeight: FontWeight.w400,
-                //   ),
-                // ),
               ],
             ),
           ],
@@ -138,7 +137,7 @@ class _ChatState extends State<Chat> {
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Center(
-                    child: Text(snapshot.error.toString()),
+                    child: Text("Erorr:" + snapshot.error.toString()),
                   );
                 } else if (snapshot.hasData) {
                   if (snapshot.data!.isNotEmpty) {
@@ -317,344 +316,33 @@ class _ChatState extends State<Chat> {
                                                     .offerModel!.status ==
                                                 'Pending') ...[
                                               GestureDetector(
-                                                onTap: () async {
-                                                  // check if order already exists for these users
-                                                  final order =
-                                                      await FirebaseFirestore
-                                                          .instance
-                                                          .collection('Orders')
-                                                          .where(
-                                                              'bidderUserId',
-                                                              isEqualTo:
-                                                                  user!.uid)
-                                                          .where('userId',
-                                                              isEqualTo: widget
-                                                                  .otherUserId)
-                                                          .get();
-
-                                                  if (order.docs.isEmpty) {
-                                                    // create order
-                                                    final String amount =
-                                                        snapshot.data![index]
-                                                            .offerModel!.amount;
-
-                                                    final list = snapshot.data!;
-                                                    int listIndex =
-                                                        list.indexOf(snapshot
-                                                            .data![index]);
-
-                                                    list[listIndex] =
-                                                        MessageModel2(
-                                                            senderId: snapshot
-                                                                .data![index]
-                                                                .senderId,
-                                                            message: snapshot
-                                                                .data![index]
-                                                                .message,
-                                                            timestamp: snapshot
-                                                                .data![index]
-                                                                .timestamp,
-                                                            offerModel:
-                                                                OfferModel(
-                                                              title: snapshot
-                                                                  .data![index]
-                                                                  .offerModel!
-                                                                  .title,
-                                                              status:
-                                                                  'Accepted',
-                                                              description: snapshot
-                                                                  .data![index]
-                                                                  .offerModel!
-                                                                  .description,
-                                                              amount: snapshot
-                                                                  .data![index]
-                                                                  .offerModel!
-                                                                  .amount,
-                                                              delivery: snapshot
-                                                                  .data![index]
-                                                                  .offerModel!
-                                                                  .delivery,
-                                                            ));
-
-                                                    await FirebaseFirestore
-                                                        .instance
-                                                        .collection('Chats')
-                                                        .doc(getChatId(
-                                                            userId1: user!.uid,
-                                                            userId2: widget
-                                                                .otherUserId))
-                                                        .update({
-                                                      'messages': [],
-                                                    });
-
-                                                    FirebaseFirestore.instance
-                                                        .collection('Chats')
-                                                        .doc(getChatId(
-                                                            userId1: user!.uid,
-                                                            userId2: widget
-                                                                .otherUserId))
-                                                        .update({
-                                                      'messages':
-                                                          FieldValue.arrayUnion(
-                                                              list
-                                                                  .map((e) => {
-                                                                        'senderId':
-                                                                            e.senderId,
-                                                                        'message':
-                                                                            e.message,
-                                                                        'sentAt':
-                                                                            e.timestamp,
-                                                                        'offer': e.offerModel !=
-                                                                                null
-                                                                            ? {
-                                                                                'title': e.offerModel!.title,
-                                                                                'description': e.offerModel!.description,
-                                                                                'amount': e.offerModel!.amount,
-                                                                                'status': e.offerModel!.status,
-                                                                                'delivery': e.offerModel!.delivery,
-                                                                              }
-                                                                            : null
-                                                                      })
-                                                                  .toList()),
-                                                    });
-
-                                                    FirebaseFirestore.instance
-                                                        .collection('Orders')
-                                                        .add({
-                                                      'id': getChatId(
-                                                          userId1: user!.uid,
-                                                          userId2: widget
-                                                              .otherUserId),
-                                                      'delivery': snapshot
-                                                          .data![index]
-                                                          .offerModel!
-                                                          .delivery,
-                                                      'userId':
-                                                          widget.otherUserId,
-                                                      'email':
-                                                          await FirebaseFirestore
-                                                              .instance
-                                                              .collection(
-                                                                  'Users')
-                                                              .doc(widget
-                                                                  .otherUserId)
-                                                              .get()
-                                                              .then((value) =>
-                                                                  value.data()![
-                                                                      'email']),
-                                                      'userName':
-                                                          await FirebaseFirestore
-                                                              .instance
-                                                              .collection(
-                                                                  'Users')
-                                                              .doc(widget
-                                                                  .otherUserId)
-                                                              .get()
-                                                              .then((value) =>
-                                                                  value.data()![
-                                                                      'username']),
-                                                      'amount': amount,
-                                                      'departureCity': request[
-                                                          'departureCity'],
-                                                      'arrivalCity': request[
-                                                          'arrivalCity'],
-                                                      'departureCountry': request[
-                                                          'departureCountry'],
-                                                      'arrivalCountry': request[
-                                                          'arrivalCountry'],
-                                                      'bidderEmail': request[
-                                                          'bidderEmail'],
-                                                      'bidderUserId': request[
-                                                          'bidderUserId'],
-                                                      'bidderUserName': request[
-                                                          'bidderUserName'],
-                                                      'description': request[
-                                                          'description'],
-                                                      'flightDate':
-                                                          request['flightDate'],
-                                                      'message':
-                                                          request['message'],
-                                                      'status':
-                                                          request['status'],
-                                                      'weight':
-                                                          request['weight'],
-                                                    });
-                                                  } else {
-                                                    // remove any duplicate orders from orders collection with same userId and bidderUserId
-                                                    final orderDocs =
-                                                        await FirebaseFirestore
-                                                            .instance
-                                                            .collection(
-                                                                'Orders')
-                                                            .where(
-                                                                'bidderUserId',
-                                                                isEqualTo:
-                                                                    user!.uid)
-                                                            .where('userId',
-                                                                isEqualTo: widget
-                                                                    .otherUserId)
-                                                            .get();
-
-                                                    if (orderDocs
-                                                        .docs.isNotEmpty) {
-                                                      orderDocs.docs.forEach(
-                                                          (element) async {
-                                                        await FirebaseFirestore
-                                                            .instance
-                                                            .collection(
-                                                                'Orders')
-                                                            .doc(element.id)
-                                                            .delete();
-                                                      });
-                                                    }
-
-                                                    // add new order to orders collection
-                                                    final String amount =
-                                                        snapshot.data![index]
-                                                            .offerModel!.amount;
-
-                                                    final list = snapshot.data!;
-                                                    int listIndex =
-                                                        list.indexOf(snapshot
-                                                            .data![index]);
-
-                                                    list[listIndex] =
-                                                        MessageModel2(
-                                                            senderId: snapshot
-                                                                .data![index]
-                                                                .senderId,
-                                                            message: snapshot
-                                                                .data![index]
-                                                                .message,
-                                                            timestamp: snapshot
-                                                                .data![index]
-                                                                .timestamp,
-                                                            offerModel:
-                                                                OfferModel(
-                                                              title: snapshot
-                                                                  .data![index]
-                                                                  .offerModel!
-                                                                  .title,
-                                                              status:
-                                                                  'Accepted',
-                                                              description: snapshot
-                                                                  .data![index]
-                                                                  .offerModel!
-                                                                  .description,
-                                                              amount: snapshot
-                                                                  .data![index]
-                                                                  .offerModel!
-                                                                  .amount,
-                                                              delivery: snapshot
-                                                                  .data![index]
-                                                                  .offerModel!
-                                                                  .delivery,
-                                                            ));
-
-                                                    await FirebaseFirestore
-                                                        .instance
-                                                        .collection('Chats')
-                                                        .doc(getChatId(
-                                                            userId1: user!.uid,
-                                                            userId2: widget
-                                                                .otherUserId))
-                                                        .update({
-                                                      'messages': [],
-                                                    });
-
-                                                    FirebaseFirestore.instance
-                                                        .collection('Chats')
-                                                        .doc(getChatId(
-                                                            userId1: user!.uid,
-                                                            userId2: widget
-                                                                .otherUserId))
-                                                        .update({
-                                                      'messages':
-                                                          FieldValue.arrayUnion(
-                                                              list
-                                                                  .map((e) => {
-                                                                        'senderId':
-                                                                            e.senderId,
-                                                                        'message':
-                                                                            e.message,
-                                                                        'sentAt':
-                                                                            e.timestamp,
-                                                                        'offer': e.offerModel !=
-                                                                                null
-                                                                            ? {
-                                                                                'title': e.offerModel!.title,
-                                                                                'description': e.offerModel!.description,
-                                                                                'amount': e.offerModel!.amount,
-                                                                                'status': e.offerModel!.status,
-                                                                                'delivery': e.offerModel!.delivery,
-                                                                              }
-                                                                            : null
-                                                                      })
-                                                                  .toList()),
-                                                    });
-
-                                                    FirebaseFirestore.instance
-                                                        .collection('Orders')
-                                                        .add({
-                                                      'id': getChatId(
-                                                          userId1: user!.uid,
-                                                          userId2: widget
-                                                              .otherUserId),
-                                                      'delivery': snapshot
-                                                          .data![index]
-                                                          .offerModel!
-                                                          .delivery,
-                                                      'userId':
-                                                          widget.otherUserId,
-                                                      'email':
-                                                          await FirebaseFirestore
-                                                              .instance
-                                                              .collection(
-                                                                  'Users')
-                                                              .doc(widget
-                                                                  .otherUserId)
-                                                              .get()
-                                                              .then((value) =>
-                                                                  value.data()![
-                                                                      'email']),
-                                                      'userName':
-                                                          await FirebaseFirestore
-                                                              .instance
-                                                              .collection(
-                                                                  'Users')
-                                                              .doc(widget
-                                                                  .otherUserId)
-                                                              .get()
-                                                              .then((value) =>
-                                                                  value.data()![
-                                                                      'username']),
-                                                      'amount': amount,
-                                                      'departureCity': request[
-                                                          'departureCity'],
-                                                      'arrivalCity': request[
-                                                          'arrivalCity'],
-                                                      'departureCountry': request[
-                                                          'departureCountry'],
-                                                      'arrivalCountry': request[
-                                                          'arrivalCountry'],
-                                                      'bidderEmail': request[
-                                                          'bidderEmail'],
-                                                      'bidderUserId': request[
-                                                          'bidderUserId'],
-                                                      'bidderUserName': request[
-                                                          'bidderUserName'],
-                                                      'description': request[
-                                                          'description'],
-                                                      'flightDate':
-                                                          request['flightDate'],
-                                                      'message':
-                                                          request['message'],
-                                                      'status':
-                                                          request['status'],
-                                                      'weight':
-                                                          request['weight'],
-                                                    });
-                                                  }
+                                                onTap: () {
+                                                  // create a new payment in Payments coll with status pending
+                                                  // with sender and reciever ids
+                                                  // and order id and amount
+                                                  // await orderRef.then((docRef) =>
+                                                  Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              PaymentScreen(
+                                                                index: index,
+                                                                userId1:
+                                                                    user!.uid,
+                                                                userId2: widget
+                                                                    .otherUserId,
+                                                                snapshot:
+                                                                    snapshot,
+                                                                amount: snapshot
+                                                                    .data![
+                                                                        index]
+                                                                    .offerModel!
+                                                                    .amount,
+                                                                senderId:
+                                                                    user!.uid,
+                                                                receiverId: widget
+                                                                    .otherUserId,
+                                                              )));
                                                 },
                                                 child: Container(
                                                   width: double.infinity,
@@ -1085,44 +773,48 @@ class _ChatState extends State<Chat> {
   }
 
   Future<void> _getSomeData() async {
-    FirebaseFirestore.instance
-        .collection('Users')
-        .doc(widget.otherUserId)
-        .get()
-        .then((value) {
-      otherUserName = value.data()!['username'];
-    });
+    try {
+      FirebaseFirestore.instance
+          .collection('Users')
+          .doc(widget.otherUserId)
+          .get()
+          .then((value) {
+        otherUserName = value.data()!['username'];
+      });
 
-    await FirebaseFirestore.instance
-        .collection('Chats')
-        .doc(getChatId(userId1: user!.uid, userId2: widget.otherUserId))
-        .get()
-        .then((value) {
-      if (value.data() != null) {
-        print('bidder: ${value.data()!['bidder']}');
-      }
-      if (user!.uid == value.data()!['bidder']) {
-        setState(() {
-          iAmBidder = true;
-        });
-      } else {
-        setState(() {
-          iAmBidder = false;
-        });
-      }
-    });
+      await FirebaseFirestore.instance
+          .collection('Chats')
+          .doc(getChatId(userId1: user!.uid, userId2: widget.otherUserId))
+          .get()
+          .then((value) {
+        if (value.data() != null) {
+          print('bidder: ${value.data()!['bidder']}');
+        }
+        if (user!.uid == value.data()!['bidder']) {
+          setState(() {
+            iAmBidder = true;
+          });
+        } else {
+          setState(() {
+            iAmBidder = false;
+          });
+        }
+      });
 
-    Map<String, dynamic> temp_request = await FirebaseFirestore.instance
-        .collection('Requests')
-        .doc(iAmBidder ? widget.otherUserId : user!.uid)
-        .collection('Bids')
-        .where('bidderUserId',
-            isEqualTo: iAmBidder ? user!.uid : widget.otherUserId)
-        .get()
-        .then((value) => value.docs.map((e) => e.data()).first);
+      Map<String, dynamic> temp_request = await FirebaseFirestore.instance
+          .collection('Requests')
+          .doc(iAmBidder ? widget.otherUserId : user!.uid)
+          .collection('Bids')
+          .where('bidderUserId',
+              isEqualTo: iAmBidder ? user!.uid : widget.otherUserId)
+          .get()
+          .then((value) => value.docs.map((e) => e.data()).first);
 
-    setState(() {
-      request = temp_request;
-    });
+      setState(() {
+        request = temp_request;
+      });
+    } catch (e) {
+      print(e);
+    }
   }
 }

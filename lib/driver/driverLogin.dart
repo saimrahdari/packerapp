@@ -1,22 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:fyp/Screens/Authentication/Signup_page.dart';
-import 'package:fyp/Screens/Orders/PlaceOrder.dart';
-import 'package:fyp/driver/driverLogin.dart';
+import 'package:fyp/driver/driverRegister.dart';
 
-import '../../My Widgets/my_text_field.dart';
-import '../../Services/constants.dart';
-import '../BottomNavigationScreens/bottom_navigation_screen.dart';
+import '../My Widgets/my_text_field.dart';
+import '../Screens/Orders/PlaceOrder.dart';
+import '../Services/constants.dart';
+import 'driverHome.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
+class DriverLogin extends StatefulWidget {
+  const DriverLogin({Key? key}) : super(key: key);
 
   @override
-  _LoginPageState createState() => _LoginPageState();
+  State<DriverLogin> createState() => _DriverLoginState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _DriverLoginState extends State<DriverLogin> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -26,7 +25,6 @@ class _LoginPageState extends State<LoginPage> {
     return SafeArea(
       child: Scaffold(
         body: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
             child: Column(
@@ -97,15 +95,14 @@ class _LoginPageState extends State<LoginPage> {
                           await auth.signInWithEmailAndPassword(
                               email: email, password: password);
                       final DocumentSnapshot snapshot = await db
-                          .collection("Users")
+                          .collection("Driver")
                           .doc(user.user!.uid)
                           .get();
                       final data = snapshot.data;
                       Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                              builder: (context) =>
-                                  const BottomNavigationScreen()));
+                              builder: (context) => const DriverHome()));
                       displayToastMessage("congratulations", context);
                       print("user logged in successfully");
                     } catch (e) {
@@ -135,8 +132,10 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 GestureDetector(
                   onTap: () {
-                    Navigator.pushReplacement(context,
-                        MaterialPageRoute(builder: (_) => const SignUpPage()));
+                    Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const RegisterDriver()));
                   },
                   child: Container(
                     width: double.infinity,
@@ -167,30 +166,7 @@ class _LoginPageState extends State<LoginPage> {
                                   style: TextStyle(fontWeight: FontWeight.bold))
                             ]),
                       )),
-                ),
-                Center(
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const DriverLogin()));
-                    },
-                    child: Container(
-                        width: 100.0,
-                        height: 30.0,
-                        decoration: BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.circular(16.0),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'Rider',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        )),
-                  ),
-                ),
+                )
               ],
             ),
           ),

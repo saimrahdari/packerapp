@@ -1,24 +1,28 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:fyp/Screens/Authentication/Signup_page.dart';
-import 'package:fyp/Screens/Orders/PlaceOrder.dart';
-import 'package:fyp/driver/driverLogin.dart';
+import 'package:fyp/driver/vehicleDetails.dart';
 
-import '../../My Widgets/my_text_field.dart';
-import '../../Services/constants.dart';
-import '../BottomNavigationScreens/bottom_navigation_screen.dart';
+import '../My Widgets/my_text_field.dart';
+import '../Screens/Orders/PlaceOrder.dart';
+import '../Services/constants.dart';
+import 'driverLogin.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
+class RegisterDriver extends StatefulWidget {
+  const RegisterDriver({Key? key}) : super(key: key);
 
   @override
-  _LoginPageState createState() => _LoginPageState();
+  State<RegisterDriver> createState() => _RegisterDriverState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _RegisterDriverState extends State<RegisterDriver> {
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _contactController = TextEditingController();
+  final TextEditingController _cityController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  var fcmToken;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +37,7 @@ class _LoginPageState extends State<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 50),
+                  padding: EdgeInsets.symmetric(vertical: 20),
                   child: Center(
                     child: Text(
                       'LOGO',
@@ -42,19 +46,36 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
+                const SizedBox(
+                  height: 10.0,
+                ),
+                Center(
+                  child: Image.asset(
+                    'assets/process1.png',
+                    width: 270.0,
+                  ),
+                ),
+                const SizedBox(
+                  height: 10.0,
+                ),
                 const Text(
-                  'Welcome Back',
+                  'Signup as driver',
                   style: TextStyle(fontWeight: FontWeight.bold),
                   textScaleFactor: 2,
                 ),
                 const Padding(
                   padding: EdgeInsets.only(top: 5, bottom: 50),
                   child: Text(
-                    'Login to continue using',
+                    'Enter your details to proceed further',
                     style: TextStyle(
                       color: Colors.grey,
                     ),
                   ),
+                ),
+                MyTextField(
+                  prefixIcon: const Icon(Icons.person, color: Colors.black),
+                  controller: _nameController,
+                  label: 'Name',
                 ),
                 MyTextField(
                   prefixIcon: const Icon(Icons.mail, color: Colors.black),
@@ -62,19 +83,22 @@ class _LoginPageState extends State<LoginPage> {
                   label: 'Email',
                 ),
                 MyTextField(
+                  prefixIcon: const Icon(Icons.phone, color: Colors.black),
+                  controller: _contactController,
+                  label: 'Phone Number',
+                ),
+                MyTextField(
+                  prefixIcon:
+                      const Icon(Icons.location_city, color: Colors.black),
+                  controller: _cityController,
+                  label: 'City',
+                ),
+                MyTextField(
                   prefixIcon: const Icon(Icons.password, color: Colors.black),
                   controller: _passwordController,
-                  isPasswordField: true,
                   label: 'Password',
+                  isPasswordField: true,
                 ),
-                Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                        onPressed: () {},
-                        child: const Text(
-                          'Forget Password',
-                          style: TextStyle(color: Colors.black),
-                        ))),
                 const SizedBox(
                   height: 25,
                 ),
@@ -82,37 +106,39 @@ class _LoginPageState extends State<LoginPage> {
                   onTap: () async {
                     final String email = _emailController.text;
                     final String password = _passwordController.text;
+                    final String username = _nameController.text;
+                    final String phone = _contactController.text;
+                    final String city = _cityController.text;
 
                     FirebaseAuth auth = FirebaseAuth.instance;
                     FirebaseFirestore db = FirebaseFirestore.instance;
-                    // showDialog(
-                    //     context: context,
-                    //     barrierDismissible: false,
-                    //     builder: (context) {
-                    //       return Center(child: CircularProgressIndicator());
-                    //     });
 
                     try {
                       final UserCredential user =
-                          await auth.signInWithEmailAndPassword(
+                          await auth.createUserWithEmailAndPassword(
                               email: email, password: password);
-                      final DocumentSnapshot snapshot = await db
-                          .collection("Users")
-                          .doc(user.user!.uid)
-                          .get();
-                      final data = snapshot.data;
-                      Navigator.pushReplacement(
+                      fcmToken = await FirebaseMessaging.instance.getToken();
+                      user.user!.updateDisplayName(username);
+
+                      await db.collection("Driver").doc(user.user!.uid).set({
+                        "username": username,
+                        "email": email,
+                        "contact": phone,
+                        "profile_image": "",
+                        "token": fcmToken,
+                        "city": city,
+                      });
+                      Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) =>
-                                  const BottomNavigationScreen()));
+                              builder: (context) => const VehicleDetails()));
                       displayToastMessage("congratulations", context);
-                      print("user logged in successfully");
+                      print("user is registered");
                     } catch (e) {
                       displayToastMessage("Error" + e.toString(), context);
+                      print(e.toString());
                       print("error");
                     }
-                    //hideLoading
                   },
                   child: Container(
                     width: double.infinity,
@@ -123,7 +149,7 @@ class _LoginPageState extends State<LoginPage> {
                     child: const Padding(
                       padding: EdgeInsets.symmetric(vertical: 25),
                       child: Center(
-                          child: Text('Login',
+                          child: Text('Create',
                               style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold))),
@@ -136,7 +162,7 @@ class _LoginPageState extends State<LoginPage> {
                 GestureDetector(
                   onTap: () {
                     Navigator.pushReplacement(context,
-                        MaterialPageRoute(builder: (_) => const SignUpPage()));
+                        MaterialPageRoute(builder: (_) => const DriverLogin()));
                   },
                   child: Container(
                     width: double.infinity,
@@ -147,7 +173,7 @@ class _LoginPageState extends State<LoginPage> {
                     child: const Padding(
                       padding: EdgeInsets.symmetric(vertical: 25),
                       child: Center(
-                          child: Text('Register',
+                          child: Text('Login',
                               style: TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.bold))),
@@ -161,36 +187,13 @@ class _LoginPageState extends State<LoginPage> {
                         text: const TextSpan(
                             style: TextStyle(color: Colors.black),
                             children: [
-                              TextSpan(text: 'Don\'t have an account? '),
+                              TextSpan(text: 'Already have an account? '),
                               TextSpan(
-                                  text: 'Tap on register',
+                                  text: 'Login',
                                   style: TextStyle(fontWeight: FontWeight.bold))
                             ]),
                       )),
-                ),
-                Center(
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const DriverLogin()));
-                    },
-                    child: Container(
-                        width: 100.0,
-                        height: 30.0,
-                        decoration: BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.circular(16.0),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'Rider',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        )),
-                  ),
-                ),
+                )
               ],
             ),
           ),
